@@ -89,9 +89,12 @@ export default function GraphExplorer() {
   const [query, setQuery] = useState("");
   const [acIdx, setAcIdx] = useState(0);
   const [acOpen, setAcOpen] = useState(false);
+  const [mode, setMode] = useState<"auto" | "manual">("auto");
 
   const posRef = useRef(positions);
   const alphaRef = useRef(1);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   const dragRef = useRef<{ id: string; moved: boolean } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
@@ -105,7 +108,7 @@ export default function GraphExplorer() {
     const tick = () => {
       const P = posRef.current;
       const a = alphaRef.current;
-      if (a > 0.02) {
+      if (a > 0.02 && modeRef.current === "auto") {
         for (let i = 0; i < P.length; i++) {
           for (let j = i + 1; j < P.length; j++) {
             const dx = P[j].x - P[i].x;
@@ -168,7 +171,9 @@ export default function GraphExplorer() {
     p.x = Math.min(W - 34, Math.max(34, x));
     p.y = Math.min(H - 40, Math.max(34, y));
     drag.moved = true;
-    alphaRef.current = Math.max(alphaRef.current, 0.3);
+    if (modeRef.current === "auto") {
+      alphaRef.current = Math.max(alphaRef.current, 0.3);
+    }
     setPositions([...posRef.current]);
   };
 
@@ -194,8 +199,32 @@ export default function GraphExplorer() {
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-line bg-[#0a0e1c] shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
-      {/* search bar */}
-      <div className="relative z-20 border-b border-line bg-white/[0.03] p-3">
+      {/* toolbar: search + layout mode */}
+      <div className="relative z-20 flex items-center gap-3 border-b border-line bg-white/[0.03] p-3">
+        <div
+          className="flex shrink-0 items-center rounded-[10px] border border-line bg-bg/60 p-0.5 font-mono text-[11px]"
+          role="group"
+          aria-label="Layout mode"
+        >
+          {(["auto", "manual"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={mode === m}
+              onClick={() => {
+                setMode(m);
+                if (m === "auto") alphaRef.current = Math.max(alphaRef.current, 0.6);
+              }}
+              className={`cursor-pointer rounded-lg px-2.5 py-1.5 uppercase tracking-[0.06em] transition-colors ${
+                mode === m
+                  ? "bg-white/[0.09] text-ink"
+                  : "text-faint hover:text-muted"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
         <input
           value={query}
           onChange={(e) => {
@@ -404,7 +433,7 @@ export default function GraphExplorer() {
         </div>
         <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-line bg-[#0d1222]/90 px-3 py-1 font-mono text-[10.5px] text-muted">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald" />
-          {NODES.length} nodes · {EDGES.length} edges · live demo
+          {NODES.length} nodes · {EDGES.length} edges · {mode} layout
         </div>
       </div>
     </div>
