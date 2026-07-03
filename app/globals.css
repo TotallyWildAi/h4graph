@@ -108,6 +108,17 @@ body {
   animation-delay: 0.15s;
 }
 
+/* window-title tape: track holds two copies, -50% shift loops seamlessly */
+@keyframes marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee 14s linear infinite;
+}
+
 @keyframes pulse-dot {
   0%,
   100% {
@@ -161,6 +172,9 @@ body {
   .rise {
     animation-duration: 0.01s;
     animation-delay: 0s;
+  }
+  .marquee-track {
+    animation: none;
   }
   html {
     scroll-behavior: auto;

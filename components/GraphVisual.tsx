@@ -10,11 +10,32 @@ const logLines = [
   { prefix: "[agent]", color: "#fbbf24", rest: " contradiction found (2025) — answer cited ✓" },
 ];
 
+const windowTitle =
+  "h4 ask — “which methods outperform transformers on long documents?”";
+
 export default function GraphVisual() {
   // start fully visible: correct SSR/no-JS output, no hydration mismatch
   const [visibleCount, setVisibleCount] = useState(logLines.length);
   const [hasAnimated, setHasAnimated] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // marquee the window title only when it actually overflows
+  const [marquee, setMarquee] = useState(false);
+  const titleBoxRef = useRef<HTMLDivElement>(null);
+  const titleTextRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const box = titleBoxRef.current;
+    const text = titleTextRef.current;
+    if (!box || !text) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const check = () =>
+      setMarquee(!reduce.matches && text.offsetWidth > box.clientWidth + 1);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     if (hasAnimated) return;
@@ -48,10 +69,33 @@ export default function GraphVisual() {
         <span className="h-3 w-3 shrink-0 rounded-full bg-[#FF5F57]" />
         <span className="h-3 w-3 shrink-0 rounded-full bg-[#FEBC2E]" />
         <span className="h-3 w-3 shrink-0 rounded-full bg-[#28C840]" />
-        <span className="ml-2 min-w-0 truncate font-mono text-[12px] tracking-[0.02em] text-muted">
-          h4 ask — &ldquo;which methods outperform transformers on long
-          documents?&rdquo;
-        </span>
+        <div
+          ref={titleBoxRef}
+          className={`relative ml-2 min-w-0 flex-1 overflow-hidden font-mono text-[12px] tracking-[0.02em] text-muted ${
+            marquee
+              ? "[mask-image:linear-gradient(90deg,transparent,black_7%,black_93%,transparent)]"
+              : ""
+          }`}
+        >
+          {/* invisible copy used only to measure the full text width */}
+          <span
+            ref={titleTextRef}
+            aria-hidden
+            className="invisible absolute inline-block whitespace-nowrap"
+          >
+            {windowTitle}
+          </span>
+          {marquee ? (
+            <div className="marquee-track flex w-max">
+              <span className="whitespace-nowrap pr-16">{windowTitle}</span>
+              <span aria-hidden className="whitespace-nowrap pr-16">
+                {windowTitle}
+              </span>
+            </div>
+          ) : (
+            <span className="block truncate">{windowTitle}</span>
+          )}
+        </div>
       </div>
 
       <div className="p-4">
@@ -67,17 +111,20 @@ export default function GraphVisual() {
               <stop offset="1" stopColor="#22d3ee" />
             </linearGradient>
           </defs>
+          {/* all edges trimmed to circle boundaries */}
           <g stroke="rgba(255,255,255,.13)" strokeWidth="1.4">
-            <line x1="110" y1="160" x2="240" y2="80" />
-            <line x1="110" y1="160" x2="250" y2="230" />
-            <line x1="240" y1="80" x2="390" y2="130" />
-            <line x1="250" y1="230" x2="390" y2="130" />
-            <line x1="240" y1="80" x2="250" y2="230" />
-            <line x1="390" y1="130" x2="455" y2="250" />
+            <line x1="141.5" y1="140.6" x2="211" y2="97.8" />
+            <line x1="143.1" y1="176.5" x2="219.6" y2="214.8" />
+            <line x1="272.3" y1="90.8" x2="357.7" y2="119.2" />
+            <line x1="277.7" y1="210.2" x2="362.3" y2="149.8" />
+            <line x1="242.3" y1="113.9" x2="247.7" y2="196.1" />
+            <line x1="406.2" y1="159.9" x2="436.9" y2="216.6" />
           </g>
+          {/* hop segments trimmed to circle edges so the stream passes
+              between nodes, not through their translucent fills */}
           <path
             className="hop-path"
-            d="M110,160 L240,80 L390,130 L455,250"
+            d="M141.5,140.6 L211,97.8 M272.3,90.8 L357.7,119.2 M406.2,159.9 L436.9,216.6"
             fill="none"
             stroke="url(#eg)"
             strokeWidth="2.5"
