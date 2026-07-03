@@ -59,7 +59,7 @@ export default function Developers() {
       className="scroll-mt-16 bg-gradient-to-b from-transparent via-indigo/5 to-transparent py-22"
     >
       <div className="mx-auto grid max-w-[1120px] items-center gap-13 px-6 lg:grid-cols-[1fr_1.1fr]">
-        <div>
+        <div className="min-w-0">
           <SectionHead
             kicker="API-first"
             title={
@@ -90,7 +90,7 @@ export default function Developers() {
             </ul>
           </Reveal>
         </div>
-        <Reveal delay={0.12}>
+        <Reveal delay={0.12} className="min-w-0">
           <div className="overflow-hidden rounded-2xl border border-line bg-[#0a0f1e] font-mono text-[13px] shadow-[0_24px_60px_rgba(0,0,0,0.5)]">
             <div className="flex items-center justify-between border-b border-line px-4.5 py-3 text-xs text-muted">
               <span>quickstart.py</span>

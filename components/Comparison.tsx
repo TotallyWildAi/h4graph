@@ -27,7 +27,7 @@ function Row({ ok, children }: { ok: boolean; children: React.ReactNode }) {
       >
         {ok ? "✓" : "✕"}
       </span>
-      <span>{children}</span>
+      <span className="min-w-0 break-words">{children}</span>
     </li>
   );
 }
