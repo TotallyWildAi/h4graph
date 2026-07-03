@@ -6,7 +6,7 @@ import Hero from "@/components/Hero";
 import Layers from "@/components/Layers";
 import Nav from "@/components/Nav";
 import Pricing from "@/components/Pricing";
-import Sovereignty from "@/components/Sovereignty";
+import Trust from "@/components/Trust";
 import Steps from "@/components/Steps";
 
 export default function Home() {
@@ -32,7 +32,7 @@ export default function Home() {
           <Steps />
           <Developers />
           <Pricing />
-          <Sovereignty />
+          <Trust />
           <FinalCta />
         </main>
         <Footer />

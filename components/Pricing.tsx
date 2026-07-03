@@ -55,7 +55,7 @@ const tiers = [
       "Unlimited papers · custom quotas",
       "Full BYOL catalog + internal docs",
       "Public API · SSO · scoped keys",
-      "AU data residency",
+      "Regional data residency",
       "Annual commit discounts",
     ],
     cta: "Talk to us",
