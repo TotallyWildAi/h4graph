@@ -50,8 +50,8 @@ const layers = [
     color: "var(--color-amber)",
     body: (
       <>
-        Plans the retrieval, notices gaps, re-queries, and synthesises a
-        structured answer — every statement wired to its source.
+        Plans which registered traversals to run, notices gaps, re-queries, and
+        synthesises a structured answer — every statement wired to its source.
       </>
     ),
     blind: "pipelines can't adapt. An agent replans.",

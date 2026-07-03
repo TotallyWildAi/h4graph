@@ -25,7 +25,7 @@ const tiers = [
     features: [
       "200 papers",
       "500 questions / month",
-      "OpenAlex · arXiv · PubMed",
+      "OpenAlex · Semantic Scholar · arXiv · CrossRef · PubMed",
       "Priority email support",
     ],
     cta: "Choose Researcher",
@@ -54,6 +54,7 @@ const tiers = [
     features: [
       "Unlimited papers · custom quotas",
       "Full BYOL catalog + internal docs",
+      "Snowflake & Databricks doc connectors",
       "Public API · SSO · scoped keys",
       "Regional data residency",
       "Annual commit discounts",

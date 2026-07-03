@@ -1,6 +1,8 @@
 import Comparison from "@/components/Comparison";
 import Developers from "@/components/Developers";
+import Explore from "@/components/Explore";
 import FinalCta from "@/components/FinalCta";
+import Governance from "@/components/Governance";
 import Footer from "@/components/Footer";
 import Hero from "@/components/Hero";
 import Layers from "@/components/Layers";
@@ -29,7 +31,9 @@ export default function Home() {
           <Hero />
           <Layers />
           <Comparison />
+          <Governance />
           <Steps />
+          <Explore />
           <Developers />
           <Pricing />
           <Trust />

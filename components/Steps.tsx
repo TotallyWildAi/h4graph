@@ -5,7 +5,7 @@ const steps = [
   {
     n: "01 · DISCOVER",
     title: "Bring the literature in",
-    body: "Search OpenAlex, arXiv, PubMed — or connect your Scopus, Embase and IEEE licences (bring-your-own-license). One click to ingest.",
+    body: "Search OpenAlex, Semantic Scholar, arXiv, CrossRef, PubMed — or bring your own licences: Scopus, Embase, IEEE, Springer, Wiley. Internal reports come straight from Snowflake or Databricks.",
   },
   {
     n: "02 · INGEST",

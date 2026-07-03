@@ -15,6 +15,7 @@ const good = [
   <>
     Agent notices the gap, re-queries, answers <em>both</em> halves — cited
   </>,
+  "Ambiguous entity? It clarifies rather than guesses",
 ];
 
 function Row({ ok, children }: { ok: boolean; children: React.ReactNode }) {

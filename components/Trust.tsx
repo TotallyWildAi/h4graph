@@ -42,6 +42,16 @@ const points = [
     title: "Residency on your terms",
     body: "Pin storage and inference to the region you choose. Your data never leaves the geography your review requires.",
   },
+  {
+    icon: (
+      <svg {...iconProps} aria-hidden>
+        <circle cx="12" cy="9" r="6" />
+        <path d="M9 14.5L8 21l4-2 4 2-1-6.5M10 9l1.5 1.5L14.5 7" />
+      </svg>
+    ),
+    title: "License-aware by design",
+    body: "Ingestion stores only what each source's licence permits — metadata, abstract, or full text, enforced per connector. Never relicensed.",
+  },
 ];
 
 export default function Trust() {
@@ -53,7 +63,7 @@ export default function Trust() {
             <h3 className="mb-6 text-[19px] font-semibold">
               Built to pass compliance review
             </h3>
-            <div className="grid gap-7 md:grid-cols-3">
+            <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
               {points.map((p) => (
                 <div key={p.title} className="flex items-start gap-3.5">
                   <span className="mt-0.5 grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-emerald/25 bg-emerald/10 text-emerald">
