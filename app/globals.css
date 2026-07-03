@@ -119,6 +119,22 @@ body {
   animation: marquee 14s linear infinite;
 }
 
+/* explorer: directional flow along edges touching the selected node.
+   offset delta 22 = 2× the dash period (6+5) → seamless loop */
+@keyframes edge-flow {
+  from {
+    stroke-dashoffset: 22;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.edge-flow {
+  stroke-dasharray: 6 5;
+  animation: edge-flow 0.9s linear infinite;
+}
+
 @keyframes pulse-dot {
   0%,
   100% {
@@ -174,6 +190,9 @@ body {
     animation-delay: 0s;
   }
   .marquee-track {
+    animation: none;
+  }
+  .edge-flow {
     animation: none;
   }
   html {

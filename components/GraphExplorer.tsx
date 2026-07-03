@@ -66,6 +66,8 @@ const EDGES: GEdge[] = [
 const W = 640;
 const H = 430;
 
+const RADIUS = new Map(NODES.map((n) => [n.id, n.r]));
+
 // deterministic golden-angle spiral start → identical SSR and first client render
 function initialPositions() {
   return NODES.map((n, i) => {
@@ -109,7 +111,7 @@ export default function GraphExplorer() {
             const dx = P[j].x - P[i].x;
             const dy = P[j].y - P[i].y;
             const d2 = Math.max(dx * dx + dy * dy, 60);
-            const f = (3400 / d2) * a;
+            const f = (4600 / d2) * a;
             const d = Math.sqrt(d2);
             P[i].vx -= (dx / d) * f;
             P[i].vy -= (dy / d) * f;
@@ -123,7 +125,7 @@ export default function GraphExplorer() {
           const dx = t.x - s.x;
           const dy = t.y - s.y;
           const d = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
-          const f = (d - 104) * 0.03 * a;
+          const f = (d - 122) * 0.03 * a;
           s.vx += (dx / d) * f;
           s.vy += (dy / d) * f;
           t.vx -= (dx / d) * f;
@@ -131,8 +133,8 @@ export default function GraphExplorer() {
         }
         for (const p of P) {
           if (dragRef.current?.id === p.id) continue;
-          p.vx += (W / 2 - p.x) * 0.012 * a;
-          p.vy += (H / 2 - p.y) * 0.014 * a;
+          p.vx += (W / 2 - p.x) * 0.009 * a;
+          p.vy += (H / 2 - p.y) * 0.012 * a;
           p.vx *= 0.86;
           p.vy *= 0.86;
           p.x = Math.min(W - 34, Math.max(34, p.x + p.vx));
@@ -261,18 +263,32 @@ export default function GraphExplorer() {
             const s = pos(e.a);
             const t = pos(e.b);
             const hot = hotEdge(e);
+            // trim to circle boundaries so edges never cross the node fills
+            const ra = RADIUS.get(e.a)! + 3;
+            const rb = RADIUS.get(e.b)! + 3;
+            const dx = t.x - s.x;
+            const dy = t.y - s.y;
+            const d = Math.hypot(dx, dy) || 1;
+            if (d < ra + rb + 6) return null;
+            const ux = dx / d;
+            const uy = dy / d;
+            const x1 = s.x + ux * ra;
+            const y1 = s.y + uy * ra;
+            const x2 = t.x - ux * rb;
+            const y2 = t.y - uy * rb;
             return (
               <g key={`${e.a}-${e.b}`}>
                 <line
-                  x1={s.x} y1={s.y} x2={t.x} y2={t.y}
+                  x1={x1} y1={y1} x2={x2} y2={y2}
+                  className={hot ? "edge-flow" : undefined}
                   stroke={e.flag ? "#fbbf24" : hot ? "#22d3ee" : "rgba(255,255,255,.14)"}
                   strokeWidth={hot ? 2 : e.flag ? 1.8 : 1.2}
-                  strokeDasharray={e.flag ? "5 4" : undefined}
+                  strokeDasharray={!hot && e.flag ? "5 4" : undefined}
                 />
                 {(hot || e.flag) && (
                   <text
-                    x={(s.x + t.x) / 2}
-                    y={(s.y + t.y) / 2 - 4}
+                    x={(x1 + x2) / 2}
+                    y={(y1 + y2) / 2 - 4}
                     textAnchor="middle"
                     fontSize="8.5"
                     className="font-mono"
