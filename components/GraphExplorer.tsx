@@ -29,6 +29,14 @@ const TYPE_LABEL: Record<NodeType, string> = {
   author: "AUTHOR",
 };
 
+// sphere shading stops for the 3D view: highlight → base → shadowed rim
+const TYPE_SPHERE: Record<NodeType, [string, string, string]> = {
+  paper: ["#d7c8ff", "#a78bfa", "#3d2d75"],
+  method: ["#b7f4fd", "#22d3ee", "#0d5468"],
+  concept: ["#b1f5d7", "#34d399", "#0e5136"],
+  author: ["#bac5d6", "#64748b", "#28313f"],
+};
+
 const NODES: GNode[] = [
   { id: "p:1021", label: "Longformer (2020)", type: "paper", r: 17, props: [["doi", "10.48550/2004.05150"], ["year", "2020"]], template: "citation_chain@3" },
   { id: "p:1024", label: "BigBird (2020)", type: "paper", r: 16, props: [["doi", "10.48550/2007.14062"], ["year", "2020"]], template: "citation_chain@3" },
@@ -393,6 +401,24 @@ export default function GraphExplorer() {
             view === "3d" ? "cursor-grab active:cursor-grabbing" : ""
           }`}
         >
+          <defs>
+            {(Object.keys(TYPE_SPHERE) as NodeType[]).map((t) => {
+              const [hi, mid, rim] = TYPE_SPHERE[t];
+              return (
+                <radialGradient
+                  key={t}
+                  id={`sph-${t}`}
+                  cx="34%"
+                  cy="28%"
+                  r="80%"
+                >
+                  <stop offset="0%" stopColor={hi} />
+                  <stop offset="42%" stopColor={mid} />
+                  <stop offset="100%" stopColor={rim} />
+                </radialGradient>
+              );
+            })}
+          </defs>
           {edgeOrder.map((e) => {
             const s = projected.get(e.a)!;
             const t = projected.get(e.b)!;
@@ -460,13 +486,32 @@ export default function GraphExplorer() {
                   dragRef.current = null;
                 }}
               >
-                <circle
-                  cx={p.x} cy={p.y} r={r}
-                  fill={TYPE_COLOR[n.type]}
-                  fillOpacity={0.16}
-                  stroke={isSel ? "#eceef6" : TYPE_COLOR[n.type]}
-                  strokeWidth={isSel ? 2.4 : 1.6}
-                />
+                {view === "3d" ? (
+                  <>
+                    <circle
+                      cx={p.x} cy={p.y} r={r}
+                      fill={`url(#sph-${n.type})`}
+                      stroke={isSel ? "#eceef6" : "rgba(0,0,0,0.35)"}
+                      strokeWidth={isSel ? 2.4 : 1}
+                    />
+                    {/* specular glint */}
+                    <circle
+                      cx={p.x - r * 0.34}
+                      cy={p.y - r * 0.4}
+                      r={r * 0.22}
+                      fill="#fff"
+                      opacity={0.22}
+                    />
+                  </>
+                ) : (
+                  <circle
+                    cx={p.x} cy={p.y} r={r}
+                    fill={TYPE_COLOR[n.type]}
+                    fillOpacity={0.16}
+                    stroke={isSel ? "#eceef6" : TYPE_COLOR[n.type]}
+                    strokeWidth={isSel ? 2.4 : 1.6}
+                  />
+                )}
                 <text
                   x={p.x}
                   y={p.y + r + 12 * p.s}
