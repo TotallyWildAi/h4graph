@@ -65,6 +65,8 @@ const EDGES: GEdge[] = [
 
 const W = 640;
 const H = 430;
+const FOCAL = 760; // perspective focal length for the 3D projection
+const Z_RANGE = 110;
 
 const RADIUS = new Map(NODES.map((n) => [n.id, n.r]));
 
@@ -77,8 +79,10 @@ function initialPositions() {
       id: n.id,
       x: W / 2 + rad * Math.cos(t),
       y: H / 2 + rad * Math.sin(t) * 0.72,
+      z: ((i * 53) % (Z_RANGE * 2)) - Z_RANGE,
       vx: 0,
       vy: 0,
+      vz: 0,
     };
   });
 }
@@ -90,36 +94,47 @@ export default function GraphExplorer() {
   const [acIdx, setAcIdx] = useState(0);
   const [acOpen, setAcOpen] = useState(false);
   const [mode, setMode] = useState<"auto" | "manual">("auto");
+  const [view, setView] = useState<"2d" | "3d">("2d");
 
   const posRef = useRef(positions);
   const alphaRef = useRef(1);
   const modeRef = useRef(mode);
   modeRef.current = mode;
-  const dragRef = useRef<{ id: string; moved: boolean } | null>(null);
+  const viewRef = useRef(view);
+  viewRef.current = view;
+  const thetaRef = useRef(0);
+  const reduceRef = useRef(false);
+  const dragRef = useRef<{ id: string; moved: boolean; lastX: number; lastY: number } | null>(null);
+  const rotRef = useRef<{ lastX: number } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  // small force simulation, POC constants scaled; cools to a standstill
+  // small force simulation in 3D, POC constants scaled; cools to a standstill
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      alphaRef.current = 0.5; // settle fast, minimal motion
-    }
+    reduceRef.current = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    if (reduceRef.current) alphaRef.current = 0.5;
     let raf = 0;
     const idx = new Map(NODES.map((n, i) => [n.id, i]));
     const tick = () => {
       const P = posRef.current;
       const a = alphaRef.current;
-      if (a > 0.02 && modeRef.current === "auto") {
+      const simActive = a > 0.02 && modeRef.current === "auto";
+      if (simActive) {
         for (let i = 0; i < P.length; i++) {
           for (let j = i + 1; j < P.length; j++) {
             const dx = P[j].x - P[i].x;
             const dy = P[j].y - P[i].y;
-            const d2 = Math.max(dx * dx + dy * dy, 60);
+            const dz = P[j].z - P[i].z;
+            const d2 = Math.max(dx * dx + dy * dy + dz * dz, 60);
             const f = (4600 / d2) * a;
             const d = Math.sqrt(d2);
             P[i].vx -= (dx / d) * f;
             P[i].vy -= (dy / d) * f;
+            P[i].vz -= (dz / d) * f;
             P[j].vx += (dx / d) * f;
             P[j].vy += (dy / d) * f;
+            P[j].vz += (dz / d) * f;
           }
         }
         for (const e of EDGES) {
@@ -127,30 +142,57 @@ export default function GraphExplorer() {
           const t = P[idx.get(e.b)!];
           const dx = t.x - s.x;
           const dy = t.y - s.y;
-          const d = Math.max(Math.sqrt(dx * dx + dy * dy), 1);
+          const dz = t.z - s.z;
+          const d = Math.max(Math.sqrt(dx * dx + dy * dy + dz * dz), 1);
           const f = (d - 122) * 0.03 * a;
           s.vx += (dx / d) * f;
           s.vy += (dy / d) * f;
+          s.vz += (dz / d) * f;
           t.vx -= (dx / d) * f;
           t.vy -= (dy / d) * f;
+          t.vz -= (dz / d) * f;
         }
         for (const p of P) {
           if (dragRef.current?.id === p.id) continue;
           p.vx += (W / 2 - p.x) * 0.009 * a;
           p.vy += (H / 2 - p.y) * 0.012 * a;
+          p.vz += (0 - p.z) * 0.01 * a;
           p.vx *= 0.86;
           p.vy *= 0.86;
+          p.vz *= 0.86;
           p.x = Math.min(W - 34, Math.max(34, p.x + p.vx));
           p.y = Math.min(H - 40, Math.max(34, p.y + p.vy));
+          p.z = Math.min(Z_RANGE, Math.max(-Z_RANGE, p.z + p.vz));
         }
         alphaRef.current *= 0.985;
-        setPositions([...P]);
       }
+      let render = simActive;
+      if (viewRef.current === "3d" && !reduceRef.current && !rotRef.current && !dragRef.current) {
+        thetaRef.current += 0.0032; // slow auto-orbit
+        render = true;
+      }
+      if (render) setPositions([...P]);
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
   }, []);
+
+  // perspective projection around a vertical axis through the graph center
+  const project = (p: { x: number; y: number; z: number }) => {
+    if (viewRef.current === "2d") return { x: p.x, y: p.y, s: 1, depth: 0 };
+    const th = thetaRef.current;
+    const dx = p.x - W / 2;
+    const xr = dx * Math.cos(th) - p.z * Math.sin(th);
+    const zr = dx * Math.sin(th) + p.z * Math.cos(th);
+    const s = FOCAL / (FOCAL - zr * 1.6);
+    return {
+      x: W / 2 + xr * s,
+      y: H / 2 + (p.y - H / 2) * s,
+      s,
+      depth: zr,
+    };
+  };
 
   const pos = (id: string) => positions[NODES.findIndex((n) => n.id === id)];
 
@@ -164,12 +206,32 @@ export default function GraphExplorer() {
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    const cur = toSvg(e);
+    if (rotRef.current) {
+      thetaRef.current += (cur.x - rotRef.current.lastX) * 0.008;
+      rotRef.current.lastX = cur.x;
+      setPositions([...posRef.current]);
+      return;
+    }
     const drag = dragRef.current;
     if (!drag) return;
-    const { x, y } = toSvg(e);
     const p = posRef.current[NODES.findIndex((n) => n.id === drag.id)];
-    p.x = Math.min(W - 34, Math.max(34, x));
-    p.y = Math.min(H - 40, Math.max(34, y));
+    const dxs = cur.x - drag.lastX;
+    const dys = cur.y - drag.lastY;
+    drag.lastX = cur.x;
+    drag.lastY = cur.y;
+    if (viewRef.current === "2d") {
+      p.x = Math.min(W - 34, Math.max(34, p.x + dxs));
+      p.y = Math.min(H - 40, Math.max(34, p.y + dys));
+    } else {
+      // undo the rotation so the node follows the pointer at its own depth
+      const th = thetaRef.current;
+      const { s } = project(p);
+      const dxr = dxs / s;
+      p.x = Math.min(W - 34, Math.max(34, p.x + dxr * Math.cos(th)));
+      p.z = Math.min(Z_RANGE, Math.max(-Z_RANGE, p.z - dxr * Math.sin(th)));
+      p.y = Math.min(H - 40, Math.max(34, p.y + dys / s));
+    }
     drag.moved = true;
     if (modeRef.current === "auto") {
       alphaRef.current = Math.max(alphaRef.current, 0.3);
@@ -195,12 +257,33 @@ export default function GraphExplorer() {
   };
 
   const selNode = NODES.find((n) => n.id === selected);
-  const hotEdge = (e: GEdge) => selected !== null && (e.a === selected || e.b === selected);
+  const hotEdge = (e: GEdge) =>
+    selected !== null && (e.a === selected || e.b === selected);
+
+  // depth-sorted render lists (far → near) so nearer nodes draw on top in 3D
+  const projected = new Map(
+    NODES.map((n) => [n.id, project(pos(n.id))] as const),
+  );
+  const nodeOrder = [...NODES].sort(
+    (a, b) => projected.get(a.id)!.depth - projected.get(b.id)!.depth,
+  );
+  const edgeOrder = [...EDGES].sort(
+    (a, b) =>
+      (projected.get(a.a)!.depth + projected.get(a.b)!.depth) / 2 -
+      (projected.get(b.a)!.depth + projected.get(b.b)!.depth) / 2,
+  );
+  const depthFade = (d: number) =>
+    view === "3d" ? 0.5 + 0.5 * ((d + Z_RANGE * 1.6) / (Z_RANGE * 3.2)) : 1;
+
+  const segBtn = (active: boolean) =>
+    `cursor-pointer rounded-lg px-2.5 py-1.5 uppercase tracking-[0.06em] transition-colors ${
+      active ? "bg-white/[0.09] text-ink" : "text-faint hover:text-muted"
+    }`;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-line bg-[#0a0e1c] shadow-[0_30px_80px_rgba(0,0,0,0.55)]">
-      {/* toolbar: search + layout mode */}
-      <div className="relative z-20 flex items-center gap-3 border-b border-line bg-white/[0.03] p-3">
+      {/* toolbar: layout mode + view + search */}
+      <div className="relative z-20 flex flex-wrap items-center gap-3 border-b border-line bg-white/[0.03] p-3">
         <div
           className="flex shrink-0 items-center rounded-[10px] border border-line bg-bg/60 p-0.5 font-mono text-[11px]"
           role="group"
@@ -213,15 +296,29 @@ export default function GraphExplorer() {
               aria-pressed={mode === m}
               onClick={() => {
                 setMode(m);
-                if (m === "auto") alphaRef.current = Math.max(alphaRef.current, 0.6);
+                if (m === "auto")
+                  alphaRef.current = Math.max(alphaRef.current, 0.6);
               }}
-              className={`cursor-pointer rounded-lg px-2.5 py-1.5 uppercase tracking-[0.06em] transition-colors ${
-                mode === m
-                  ? "bg-white/[0.09] text-ink"
-                  : "text-faint hover:text-muted"
-              }`}
+              className={segBtn(mode === m)}
             >
               {m}
+            </button>
+          ))}
+        </div>
+        <div
+          className="flex shrink-0 items-center rounded-[10px] border border-line bg-bg/60 p-0.5 font-mono text-[11px]"
+          role="group"
+          aria-label="View"
+        >
+          {(["2d", "3d"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={view === v}
+              onClick={() => setView(v)}
+              className={segBtn(view === v)}
+            >
+              {v}
             </button>
           ))}
         </div>
@@ -240,7 +337,7 @@ export default function GraphExplorer() {
           }}
           placeholder="Search the graph — try “mamba”, “sparse”, or “Zhao”"
           aria-label="Search graph nodes"
-          className="w-full rounded-[10px] border border-line bg-bg/60 px-3.5 py-2 font-mono text-[13px] text-ink outline-none transition-colors placeholder:text-faint focus:border-cyan/50"
+          className="min-w-[180px] flex-1 rounded-[10px] border border-line bg-bg/60 px-3.5 py-2 font-mono text-[13px] text-ink outline-none transition-colors placeholder:text-faint focus:border-cyan/50"
         />
         {acOpen && matches.length > 0 && (
           <div className="absolute inset-x-3 top-full z-30 mt-1 overflow-hidden rounded-xl border border-line bg-[#0d1222] shadow-[0_16px_48px_rgba(0,0,0,0.6)]">
@@ -283,18 +380,26 @@ export default function GraphExplorer() {
           width="100%"
           role="application"
           aria-label="Interactive knowledge-graph explorer demo"
+          onPointerDown={(e) => {
+            if (viewRef.current === "3d" && !dragRef.current) {
+              (e.target as Element).setPointerCapture?.(e.pointerId);
+              rotRef.current = { lastX: toSvg(e).x };
+            }
+          }}
           onPointerMove={onPointerMove}
-          onPointerUp={() => (dragRef.current = null)}
-          onPointerLeave={() => (dragRef.current = null)}
-          className="relative block touch-none select-none"
+          onPointerUp={() => { dragRef.current = null; rotRef.current = null; }}
+          onPointerLeave={() => { dragRef.current = null; rotRef.current = null; }}
+          className={`relative block touch-none select-none ${
+            view === "3d" ? "cursor-grab active:cursor-grabbing" : ""
+          }`}
         >
-          {EDGES.map((e) => {
-            const s = pos(e.a);
-            const t = pos(e.b);
+          {edgeOrder.map((e) => {
+            const s = projected.get(e.a)!;
+            const t = projected.get(e.b)!;
             const hot = hotEdge(e);
             // trim to circle boundaries so edges never cross the node fills
-            const ra = RADIUS.get(e.a)! + 3;
-            const rb = RADIUS.get(e.b)! + 3;
+            const ra = (RADIUS.get(e.a)! + 3) * s.s;
+            const rb = (RADIUS.get(e.b)! + 3) * t.s;
             const dx = t.x - s.x;
             const dy = t.y - s.y;
             const d = Math.hypot(dx, dy) || 1;
@@ -305,8 +410,9 @@ export default function GraphExplorer() {
             const y1 = s.y + uy * ra;
             const x2 = t.x - ux * rb;
             const y2 = t.y - uy * rb;
+            const fade = depthFade((s.depth + t.depth) / 2);
             return (
-              <g key={`${e.a}-${e.b}`}>
+              <g key={`${e.a}-${e.b}`} opacity={fade}>
                 <line
                   x1={x1} y1={y1} x2={x2} y2={y2}
                   className={hot ? "edge-flow" : undefined}
@@ -332,18 +438,22 @@ export default function GraphExplorer() {
               </g>
             );
           })}
-          {NODES.map((n) => {
-            const p = pos(n.id);
+          {nodeOrder.map((n) => {
+            const p = projected.get(n.id)!;
             const dim = dimming && !matchIds.has(n.id);
             const isSel = selected === n.id;
+            const r = n.r * p.s;
+            const fade = depthFade(p.depth);
             return (
               <g
                 key={n.id}
-                opacity={dim ? 0.22 : 1}
+                opacity={(dim ? 0.22 : 1) * fade}
                 className="cursor-pointer"
                 onPointerDown={(e) => {
+                  e.stopPropagation();
                   (e.target as Element).setPointerCapture?.(e.pointerId);
-                  dragRef.current = { id: n.id, moved: false };
+                  const c = toSvg(e);
+                  dragRef.current = { id: n.id, moved: false, lastX: c.x, lastY: c.y };
                 }}
                 onPointerUp={() => {
                   if (dragRef.current && !dragRef.current.moved) setSelected(n.id);
@@ -351,7 +461,7 @@ export default function GraphExplorer() {
                 }}
               >
                 <circle
-                  cx={p.x} cy={p.y} r={n.r}
+                  cx={p.x} cy={p.y} r={r}
                   fill={TYPE_COLOR[n.type]}
                   fillOpacity={0.16}
                   stroke={isSel ? "#eceef6" : TYPE_COLOR[n.type]}
@@ -359,9 +469,9 @@ export default function GraphExplorer() {
                 />
                 <text
                   x={p.x}
-                  y={p.y + n.r + 12}
+                  y={p.y + r + 12 * p.s}
                   textAnchor="middle"
-                  fontSize="10.5"
+                  fontSize={10.5 * p.s}
                   fill={isSel ? "#eceef6" : "#aab1c6"}
                   stroke="#0a0e1c"
                   strokeWidth="3.5"
@@ -433,7 +543,8 @@ export default function GraphExplorer() {
         </div>
         <div className="pointer-events-none absolute bottom-3 left-3 flex items-center gap-2 rounded-full border border-line bg-[#0d1222]/90 px-3 py-1 font-mono text-[10.5px] text-muted">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald" />
-          {NODES.length} nodes · {EDGES.length} edges · {mode} layout
+          {NODES.length} nodes · {EDGES.length} edges · {mode} layout · {view}
+          {view === "3d" && " · drag background to orbit"}
         </div>
       </div>
     </div>
