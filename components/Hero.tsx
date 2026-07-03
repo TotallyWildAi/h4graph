@@ -11,7 +11,7 @@ export default function Hero() {
   return (
     <section className="relative">
       <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-6 pb-16 pt-24 lg:grid-cols-[1.05fr_0.95fr]">
-        <div className="rise">
+        <div className="rise min-w-0">
           <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-indigo/35 bg-indigo/10 px-3.5 py-1.5 text-[13px] text-[#c7d2fe]">
             <span className="pulse-dot h-[7px] w-[7px] rounded-full bg-cyan" />
             Hybrid 4-layer answering engine
@@ -45,7 +45,7 @@ export default function Hero() {
             ))}
           </div>
         </div>
-        <div className="rise rise-delay">
+        <div className="rise rise-delay min-w-0">
           <GraphVisual />
         </div>
       </div>
