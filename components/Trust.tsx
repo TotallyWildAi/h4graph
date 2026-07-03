@@ -51,7 +51,7 @@ export default function Trust() {
         <Reveal>
           <div className="panel rounded-2xl px-9 py-8">
             <h3 className="mb-6 text-[19px] font-semibold">
-              Built to pass security review
+              Built to pass compliance review
             </h3>
             <div className="grid gap-7 md:grid-cols-3">
               {points.map((p) => (
